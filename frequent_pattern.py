@@ -115,17 +115,16 @@ class treeNode:
         self.children = {}
         self.next = None
 
-    def add(self):
-        self.count += 1
+    def add(self, count=1):
+        self.count += count
     
     def display(self, layer=1):
         # if layer > 3:
         #     return
-        print(' '*layer, layer ,self.name , self.sumCount, self.count)
+        print(' '*layer, layer ,self.name , self.count)
         for child in self.children.values():
             child.display(layer+1)
             
-
 def createTree(trans, headerTable, root):
     if trans[0] in root.children:
         root.children[trans[0]].add()
@@ -145,11 +144,102 @@ def updateHeaderTable(headerNode, newChildNode):
         headerNode = headerNode.next
     headerNode.next = newChildNode
 
-def suffixTaverse(rootNode, headerTable):
-    return
 
-def findParentPath():
-    return
+def suffixTaverse(rootNode, headerTable, minSup):
+    for item in headerTable:
+        itemPaths, tranSet = findParentPath(headerTable[item][1])
+        # if item == 'using':
+        #     print(itemPaths)
+        myTree = treeNode('Root', 0, None)
+        freqSet = []
+        freqSet += createSubtree(itemPaths, tranSet, minSup, myTree)
+        # myTree.display()
+        # break
+    return freqSet
+
+def findParentPath(headerNode):
+    parentPath = {}
+    tranSet = []
+    while headerNode is not None:
+        upTraverse = []
+        p = headerNode
+        while p.parent is not None:
+            upTraverse.append(p.name)
+            p = p.parent
+        if len(upTraverse) > 0:
+            parentPath[frozenset(upTraverse)] = headerNode.count
+            upTraverse.reverse()
+            tranSet.append(upTraverse)
+        headerNode = headerNode.next
+
+    return parentPath, tranSet
+
+def createSubtree(itemPaths, tranSet, minSup, rootNode):
+    headerTable, headerWord = buildSubHeaderTable(itemPaths, minSup)
+    hTable = [None]
+    for trans, i in zip(tranSet, itemPaths):
+        createsmallTree(trans, itemPaths[i], rootNode, headerWord, hTable)
+
+
+    freqSet = []
+    while hTable[0] is not None:
+        if hTable[0].count >= minSup:
+            p = hTable[0]
+            oneSet = []
+            tup = ()
+            count = hTable[0].count
+            while p.parent is not None:
+                oneSet.append(p.name)
+                tup = (oneSet, count)
+                p = p.parent
+        print(tup)
+        freqSet.append(tup)
+        hTable[0] = hTable[0].next
+    return freqSet
+
+def buildSubHeaderTable(itemPaths, minSup):
+    headerTable = {}
+    for trans in itemPaths:
+        for item in trans:
+            if item not in headerTable:
+                headerTable[item] = itemPaths[trans]
+            else:
+                headerTable[item] += itemPaths[trans]
+
+    headerTemp = {}
+    headerWord = []
+    for i in headerTable:
+        if headerTable[i] >= minSup:
+            headerTemp[i] = headerTable[i]
+            headerWord.append(i)
+            # headerTemp[i] = [headerTable[i], None]
+
+    return headerTemp, headerWord
+
+def createsmallTree(trans, count, root, headerWord, htable):
+    if trans[0] in headerWord:
+        if trans[0] in root.children:
+            root.children[trans[0]].add(count)
+            if len(trans) > 1:
+                createsmallTree(trans[1:], count, root, headerWord, htable)   
+                createsmallTree(trans[1:], count, root.children[trans[0]], headerWord, htable)
+        else:
+            root.children[trans[0]] = treeNode(trans[0], count, root)
+
+            if trans[0] == trans[-1]:
+                # print(trans[0], htable)
+                if htable[0] is None:
+                    htable[0] = root.children[trans[0]]
+                else:
+                    updateHeaderTable(htable[0], root.children[trans[0]])
+
+            if len(trans) > 1:
+                createsmallTree(trans[1:], count, root, headerWord, htable)
+                createsmallTree(trans[1:], count, root.children[trans[0]], headerWord, htable) 
+
+    else:
+        if len(trans) > 1:
+            createsmallTree(trans[1:], count, root, headerWord, htable)    
 
 def main():
     out_file, min_sup = arg[2], arg[3]
@@ -165,11 +255,7 @@ def main():
     for trans in sortFreqTable:
         createTree(trans, reverseHeaderTable, rootNode)
 
-    suffixTaverse(rootNode, reverseHeaderTable)
-    
-
-    # print(wordCount)
-
-    # rootNode.display()
+    freqSet = suffixTaverse(rootNode, reverseHeaderTable, minSup)
+    print(freqSet)
     
 main()
