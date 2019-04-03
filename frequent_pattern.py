@@ -23,16 +23,16 @@ def sort_pattern(pat, inv_word_idx):
 def abs_2_trans(abstract , stop_words):
     abstract = abstract.lower()
     abstract = re.sub('[\\n]',' ',abstract)
-    abstract = re.sub('[!@#$%^&*()\\n$:;]+','',abstract)
-    sentences = re.split('[.,?]+',abstract)
-    
+    abstract = re.sub('[!@#$%^&*()\\n$:;]+',' ',abstract)
+    #sentences = re.split('[.,?]+',abstract)
+    sentences = re.split('(?<![0-9])([\.,?])',abstract)
+    stop_words.extend(['.',',','?'])
     ret = []
-    
     for se in sentences:
         k = se.split(' ')
         a = []
         for s in k:
-            if s not in stop_words and len(s)>0 and s not in a:
+            if s not in stop_words and len(s)>0:
                 a.append(s)
         if len(a)>0:
             ret.append(a)
@@ -146,12 +146,12 @@ def updateHeaderTable(headerNode, newChildNode):
 
 
 def suffixTaverse(rootNode, headerTable, minSup):
+    freqSet = []
     for item in headerTable:
         itemPaths, tranSet = findParentPath(headerTable[item][1])
         # if item == 'using':
         #     print(itemPaths)
         myTree = treeNode('Root', 0, None)
-        freqSet = []
         freqSet += createSubtree(itemPaths, tranSet, minSup, myTree)
         # myTree.display()
         # break
@@ -192,9 +192,9 @@ def createSubtree(itemPaths, tranSet, minSup, rootNode):
                 oneSet.append(p.name)
                 tup = (oneSet, count)
                 p = p.parent
-        print(tup)
         freqSet.append(tup)
         hTable[0] = hTable[0].next
+
     return freqSet
 
 def buildSubHeaderTable(itemPaths, minSup):
@@ -256,6 +256,8 @@ def main():
         createTree(trans, reverseHeaderTable, rootNode)
 
     freqSet = suffixTaverse(rootNode, reverseHeaderTable, minSup)
-    print(freqSet)
+    for f in freqSet:
+        f[0].sort()
+    
     
 main()
